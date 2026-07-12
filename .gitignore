@@ -17,3 +17,4 @@ dist/
 .superpowers/
 .worktrees/
 decrypt-all-settings.js
+.vercel
