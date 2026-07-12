@@ -87,22 +87,26 @@ describe('loadConfig', () => {
     const baseEnv = { ...productionEnvironment };
 
     // Test non-postgres URL
+    const nonPostgresUrl = 'https://example.com';
     const errorNonPostgres = expectConfigError(() =>
       loadConfig({
         ...baseEnv,
-        DATABASE_URL: 'https://example.com',
+        DATABASE_URL: nonPostgresUrl,
       }),
     );
     expect(errorNonPostgres.message).toContain('DATABASE_URL');
+    expect(errorNonPostgres.message).not.toContain(nonPostgresUrl);
 
     // Test malformed URL
+    const malformedUrl = 'not-a-url';
     const errorMalformed = expectConfigError(() =>
       loadConfig({
         ...baseEnv,
-        DATABASE_URL: 'not-a-url',
+        DATABASE_URL: malformedUrl,
       }),
     );
     expect(errorMalformed.message).toContain('DATABASE_URL');
+    expect(errorMalformed.message).not.toContain(malformedUrl);
   });
 });
 

@@ -11,6 +11,7 @@ vi.mock('pg', () => {
     connect: vi.fn().mockResolvedValue(mClient),
     query: vi.fn(),
     end: vi.fn(),
+    on: vi.fn().mockReturnThis(),
   };
   return {
     default: {
@@ -58,5 +59,19 @@ describe('DatabaseClient', () => {
     await client.close();
 
     expect(poolInstance.end).toHaveBeenCalled();
+  });
+
+  test('attaches error handler to the connection pool on creation', () => {
+    expect(poolInstance.on).toHaveBeenCalledWith('error', expect.any(Function));
+
+    // Test that the error handler logs to console.error
+    const errorHandler = poolInstance.on.mock.calls.find((call: any) => call[0] === 'error')[1];
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const mockError = new Error('Test connection error');
+    errorHandler(mockError);
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Unexpected error on idle client', mockError);
+    consoleErrorSpy.mockRestore();
   });
 });

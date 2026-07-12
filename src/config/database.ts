@@ -5,6 +5,9 @@ export class DatabaseClient {
 
   public constructor(connectionString: string) {
     this.pool = new pg.Pool({ connectionString });
+    this.pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
+    });
   }
 
   public async connect(): Promise<pg.PoolClient> {
