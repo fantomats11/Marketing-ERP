@@ -16,6 +16,13 @@ export interface AirtableTransactionFieldMap {
   readonly destination: string;
   readonly paidAt?: string;
   readonly customerReference?: string;
+  readonly bootsHeight?: string;
+  readonly bagCapacity?: string;
+  readonly pantsLength?: string;
+  readonly shirtLength?: string;
+  readonly color?: string;
+  readonly size?: string;
+  readonly customerName?: string;
 }
 
 export interface AirtableTransactionMappingConfig {
@@ -167,6 +174,14 @@ export function normalizeAirtableTransaction(
     );
   }
 
+  const bootsHeight = config.fieldMap.bootsHeight === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.bootsHeight));
+  const bagCapacity = config.fieldMap.bagCapacity === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.bagCapacity));
+  const pantsLength = config.fieldMap.pantsLength === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.pantsLength));
+  const shirtLength = config.fieldMap.shirtLength === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.shirtLength));
+  const color = config.fieldMap.color === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.color));
+  const size = config.fieldMap.size === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.size));
+  const customerName = config.fieldMap.customerName === undefined ? undefined : mapOptionalStringField(snapshot.read(config.fieldMap.customerName));
+
   const parsed = NormalizedTransactionSchema.safeParse({
     sourceId: record.id,
     sourceBaseId: config.baseId,
@@ -183,6 +198,13 @@ export function normalizeAirtableTransaction(
     ...(destination === undefined ? {} : { destination }),
     sourceUpdatedAt,
     ingestedAt,
+    ...(bootsHeight === undefined ? {} : { bootsHeight }),
+    ...(bagCapacity === undefined ? {} : { bagCapacity }),
+    ...(pantsLength === undefined ? {} : { pantsLength }),
+    ...(shirtLength === undefined ? {} : { shirtLength }),
+    ...(color === undefined ? {} : { color }),
+    ...(size === undefined ? {} : { size }),
+    ...(customerName === undefined ? {} : { customerName }),
   });
 
   return parsed.success
@@ -326,6 +348,22 @@ function nonEmptyString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed === '' ? undefined : trimmed;
+}
+
+function mapOptionalStringField(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return nonEmptyString(value);
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return undefined;
+    }
+    return mapOptionalStringField(value[0]);
+  }
+  return undefined;
 }
 
 function issue(

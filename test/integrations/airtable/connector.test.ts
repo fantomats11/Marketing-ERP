@@ -331,8 +331,8 @@ describe('AirtableConnector', () => {
       'code', 'severity', 'sourceKey',
     ]);
     expect(Object.keys(batch.records[0]!.transaction).sort()).toEqual([
-      'amounts', 'branchId', 'brandId', 'currency', 'destination', 'documentDate',
-      'documentKind', 'documentNumber', 'ingestedAt', 'orderGroupId', 'paidAt', 'sourceBaseId',
+      'amounts', 'bagCapacity', 'bootsHeight', 'branchId', 'brandId', 'color', 'currency', 'customerName', 'destination', 'documentDate',
+      'documentKind', 'documentNumber', 'ingestedAt', 'orderGroupId', 'paidAt', 'pantsLength', 'shirtLength', 'size', 'sourceBaseId',
       'sourceId', 'sourceUpdatedAt',
     ]);
   });

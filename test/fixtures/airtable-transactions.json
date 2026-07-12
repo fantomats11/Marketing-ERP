@@ -23,7 +23,14 @@
         },
         "sourceUpdatedAt": "source_modified",
         "destination": "destination_text",
-        "paidAt": "paid_at"
+        "paidAt": "paid_at",
+        "bootsHeight": "boots_height",
+        "bagCapacity": "bag_capacity",
+        "pantsLength": "pants_length",
+        "shirtLength": "shirt_length",
+        "color": "color",
+        "size": "size",
+        "customerName": "customer_name"
       },
       "branches": {
         "R9": "rac-rama9",
@@ -52,7 +59,14 @@
           "refundAmount": "returned"
         },
         "sourceUpdatedAt": "last_changed",
-        "destination": "trip_destination"
+        "destination": "trip_destination",
+        "bootsHeight": "boots_height",
+        "bagCapacity": "bag_capacity",
+        "pantsLength": "pants_length",
+        "shirtLength": "shirt_length",
+        "color": "color",
+        "size": "size",
+        "customerName": "customer_name"
       },
       "branches": {
         "GM-R9": "gomall-rama9",
@@ -83,7 +97,14 @@
             "source_modified": "2026-07-10T05:00:00Z",
             "destination_text": "Hokkaido",
             "paid_at": "2026-07-10T03:00:00+07:00",
-            "arbitrary_private_customer_data": "arbitrary-private-pii-value"
+            "arbitrary_private_customer_data": "arbitrary-private-pii-value",
+            "boots_height": "29",
+            "bag_capacity": "20",
+            "pants_length": "32",
+            "shirt_length": "28",
+            "color": "navy",
+            "size": "M",
+            "customer_name": "Alice Cooper"
           }
         }
       ],
@@ -160,7 +181,14 @@
             "held_deposit": 100,
             "returned": 0,
             "last_changed": "2026-07-11T02:00:00Z",
-            "trip_destination": "Seoul"
+            "trip_destination": "Seoul",
+            "boots_height": "25",
+            "bag_capacity": "18",
+            "pants_length": "31",
+            "shirt_length": "27",
+            "color": "grey",
+            "size": "L",
+            "customer_name": "Bob Marley"
           }
         }
       ]

@@ -56,6 +56,13 @@ export const NormalizedTransactionSchema = z
     destination: z.string().min(1).optional(),
     sourceUpdatedAt: UtcTimestampSchema,
     ingestedAt: UtcTimestampSchema,
+    bootsHeight: z.string().optional(),
+    bagCapacity: z.string().optional(),
+    pantsLength: z.string().optional(),
+    shirtLength: z.string().optional(),
+    color: z.string().optional(),
+    size: z.string().optional(),
+    customerName: z.string().optional(),
   })
   .refine(
     (transaction) => {
