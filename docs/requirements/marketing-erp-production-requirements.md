@@ -116,6 +116,16 @@ The Vibhavadi operation is planned to move to a new Phetkasem location around Au
 - Secret access is service-only; no credential may be returned to browser clients.
 - Audit trail for approvals, configuration changes, mapping overrides, and manual reconciliation decisions.
 
+### 4.11 Omnichannel Chat and Agent Copilot
+
+- Unified Inbox: Consolidate active chats from LINE OA, Facebook Messenger, Instagram DM, and TikTok comments/messages into a single dashboard interface.
+- Customer CRM Identity Linkage: Automatically match incoming social media/chat handlers with canonical customer profiles in Airtable (using phone numbers or customer reference hash).
+- Customer Context Card: Display the matched customer's rental history (`RE` records), active size attributes (boots height, pants/shirt length, colors, size), travel destination, and trip dates alongside the chat screen.
+- AI Chat Copilot: Real-time LLM parsing of incoming chats to:
+  - Generate draft replies for agents based on the product inventory, sizing chart, and store policies (warmth, cleanliness, trip readiness).
+  - Extract and populate CRM attributes: travel destination, trip date, rental/purchase intent, pain points, and objections into `conversations` and `conversation_extractions` tables.
+- Transactional Triggers: Allow agents to send size guides, booking deposit links, or invoice drafts directly from the chat interface.
+
 ## 5. Canonical Revenue Rules
 
 Revenue categories are `rental`, `sale`, `wash`, `asset_sale`, `b2b`, `barter`, `damage_fee`, and `late_fee`. `deposit` and `refund` are settlement types, not positive revenue categories.

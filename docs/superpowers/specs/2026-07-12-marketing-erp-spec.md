@@ -130,6 +130,16 @@ graph TD
 *   **Airtable $\leftrightarrow$ FlowAccount:** Compares transaction subtotal, VAT, total, and payment status. Mismatches are flagged to an Actionable Reconciliation Queue.
 *   **Validation Queues:** Lists records with missing keys, unknown SKUs, stale data sources, or mismatched RE/CA combinations.
 
+### 4.10 Omnichannel Chat & Agent Copilot (Chat Replying Solution)
+*   **Unified Multi-Channel Inbox:** Aggregates incoming customer chats from LINE OA, Facebook Messenger, Instagram DM, and TikTok messages into a single, unified view in the Next.js ERP dashboard.
+*   **Airtable Customer Match & Context Card:** Dynamically matches chat handlers (e.g. LINE ID or FB Page user ref) with Airtable customer profiles. Displays a Customer Context Card showing:
+    *   Active sizes (boots height, pants/shirt length) from WooCommerce/Airtable attribute records.
+    *   Past rental history (`RE` records), active trip destinations, and trip dates.
+*   **AI Chat Copilot (LLM-driven helper):**
+    *   *Suggested Drafts:* Uses Gemini/OpenAI API with the store's knowledge base (warmth guidelines, inventory, sizing chart) to instantly draft suggestions for agents, solving agent response delays.
+    *   *AI Extract-and-Tag:* Automatically extracts traveler travel destinations, trip dates, rental/purchase intent, and specific customer pain points/objections directly from messages, inserting them into `conversations` and `conversation_extractions` tables.
+*   **Transactional Quick-Actions:** Direct button integration to send size charts, checkout invoice drafts, or payment links directly into the active chat window.
+
 ---
 
 ## 5. Identified Gaps & Missing Items (Production-Ready Action Items)
