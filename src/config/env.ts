@@ -18,7 +18,7 @@ const RawEnvironmentSchema = z.object({
   AIRTABLE_API_URL: z.url().refine(isSafeAirtableApiUrl).default('https://api.airtable.com'),
   GCP_PROJECT_ID: z.string().min(1).optional(),
   GCP_REGION: z.string().min(1).optional(),
-  DATABASE_URL: z.url().optional(),
+  DATABASE_URL: z.url().refine(isPostgresUrl).optional(),
   AIRTABLE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(15),
 });
 
@@ -145,6 +145,15 @@ function isSafeAirtableApiUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === 'https:' && url.username === '' && url.password === '';
+  } catch {
+    return false;
+  }
+}
+
+function isPostgresUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'postgres:' || url.protocol === 'postgresql:';
   } catch {
     return false;
   }

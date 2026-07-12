@@ -82,6 +82,28 @@ describe('loadConfig', () => {
     expect(error.message).not.toContain(secret);
     expect(error.message).not.toContain(url);
   });
+
+  test('rejects malformed or non-postgres DATABASE_URL in production', () => {
+    const baseEnv = { ...productionEnvironment };
+
+    // Test non-postgres URL
+    const errorNonPostgres = expectConfigError(() =>
+      loadConfig({
+        ...baseEnv,
+        DATABASE_URL: 'https://example.com',
+      }),
+    );
+    expect(errorNonPostgres.message).toContain('DATABASE_URL');
+
+    // Test malformed URL
+    const errorMalformed = expectConfigError(() =>
+      loadConfig({
+        ...baseEnv,
+        DATABASE_URL: 'not-a-url',
+      }),
+    );
+    expect(errorMalformed.message).toContain('DATABASE_URL');
+  });
 });
 
 function expectConfigError(action: () => unknown): ConfigValidationError {
