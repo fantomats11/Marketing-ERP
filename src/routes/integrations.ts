@@ -1,5 +1,6 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 
+import { DatabaseClient } from '../config/database.js';
 import {
   IntegrationNotFoundError,
   IntegrationRegistry,
@@ -15,6 +16,7 @@ export interface IntegrationRouteDependencies {
   readonly registry: IntegrationRegistry;
   readonly syncService: SyncService;
   readonly authorization: preHandlerHookHandler;
+  readonly dbClient?: DatabaseClient;
 }
 
 export class IntegrationAuthorizationRequiredError extends Error {
@@ -182,6 +184,69 @@ export function registerIntegrationRoutes(
         return reply.code(409).send({ error: 'INTEGRATION_SYNC_ALREADY_RUNNING' });
       }
       return reply.code(500).send({ error: 'INTEGRATION_SYNC_REJECTED' });
+    }
+  });
+
+  app.get('/api/crm/summary', {
+    preHandler: dependencies.authorization,
+  }, async (_request, reply) => {
+    const dbClient = dependencies.dbClient;
+    if (!dbClient) {
+      return {
+        totalLeads: 0,
+        totalValueBaht: 0,
+        stageCounts: { new: 0, qualified: 0, reserved_or_added_to_cart: 0, paid: 0, completed: 0 },
+        recentLeads: [],
+      };
+    }
+    try {
+      const leadsCountResult = await dbClient.query('SELECT COUNT(*) as count, COALESCE(SUM(estimated_basket_value), 0) as total_value FROM public.leads');
+      const stageCountsResult = await dbClient.query('SELECT stage, COUNT(*) as count FROM public.pipeline_items GROUP BY stage');
+      const recentLeadsResult = await dbClient.query(`
+        SELECT l.customer_name, l.destination, l.trip_date, l.estimated_basket_value, p.stage, p.brand_route
+        FROM public.leads l
+        LEFT JOIN public.pipeline_items p ON p.lead_id = l.id
+        ORDER BY l.trip_date DESC LIMIT 10
+      `);
+
+      const totalLeads = parseInt(leadsCountResult.rows[0]?.count || '0', 10);
+      const totalValueSatang = parseInt(leadsCountResult.rows[0]?.total_value || '0', 10);
+
+      const stageCounts: Record<string, number> = {
+        new: 0,
+        qualified: 0,
+        reserved_or_added_to_cart: 0,
+        paid: 0,
+        completed: 0,
+      };
+      for (const row of stageCountsResult.rows) {
+        if (row.stage) {
+          stageCounts[row.stage] = parseInt(row.count, 10);
+        }
+      }
+
+      const recentLeads = (recentLeadsResult.rows || []).map((row: any) => ({
+        customerName: row.customer_name,
+        destination: row.destination,
+        tripDate: row.trip_date,
+        estimatedBasketValue: parseInt(row.estimated_basket_value || '0', 10) / 100,
+        stage: row.stage,
+        brandRoute: row.brand_route,
+      }));
+
+      return {
+        totalLeads,
+        totalValueBaht: totalValueSatang / 100,
+        stageCounts,
+        recentLeads,
+      };
+    } catch {
+      return {
+        totalLeads: 0,
+        totalValueBaht: 0,
+        stageCounts: { new: 0, qualified: 0, reserved_or_added_to_cart: 0, paid: 0, completed: 0 },
+        recentLeads: [],
+      };
     }
   });
 }

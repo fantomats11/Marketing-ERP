@@ -139,6 +139,7 @@ const app = buildApp({
     registry,
     syncService,
     authorization,
+    dbClient,
   },
 });
 

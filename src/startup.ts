@@ -162,6 +162,7 @@ export async function startApplication(
         registry,
         syncService,
         authorization,
+        dbClient,
       },
     });
     await app.listen({ host: '0.0.0.0', port });
