@@ -14,7 +14,7 @@ describe('CrmRepository', () => {
     repository = new CrmRepository(mockDb as unknown as DatabaseClient);
   });
 
-  test('upsertTransactions maps and inserts transactions to leads and pipeline items', async () => {
+  test('upsertTransactions maps and inserts transactions to leads and pipeline items with concurrency', async () => {
     const batch: AirtableSyncBatch = {
       records: [
         {
@@ -45,6 +45,13 @@ describe('CrmRepository', () => {
             destination: 'Japan',
             sourceUpdatedAt: '2026-07-12T15:35:00Z',
             ingestedAt: '2026-07-12T15:40:00Z',
+            bootsHeight: '29',
+            bagCapacity: '20',
+            pantsLength: '32',
+            shirtLength: '28',
+            color: 'navy',
+            size: 'M',
+            customerName: 'Alice Cooper',
           },
         },
         {
@@ -94,24 +101,30 @@ describe('CrmRepository', () => {
     expect(mockDb.query).toHaveBeenCalledTimes(4);
 
     // Verify first transaction: paid rental, brand 'rent-a-coat' -> 'rent_a_coat' stage -> 'paid'
-    const lead1Id = getDeterministicUuid('rec1');
+    // Uses unified customerReferenceHash for leadId
+    const lead1Id = getDeterministicUuid('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
     const orgId = '00000000-0000-4000-8000-000000000001';
-    expect(mockDb.query).toHaveBeenNthCalledWith(
-      1,
+    
+    expect(mockDb.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO public.leads'),
       [
         lead1Id,
         orgId,
-        'RE-1001',
+        'Alice Cooper',
         'Japan',
         '2026-07-12',
         9630, // docTotal in integer satang
+        '29',
+        '20',
+        '32',
+        '28',
+        'navy',
+        'M',
       ],
     );
 
     const pipeline1Id = getDeterministicUuid('rec1-pipeline');
-    expect(mockDb.query).toHaveBeenNthCalledWith(
-      2,
+    expect(mockDb.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO public.pipeline_items'),
       [
         pipeline1Id,
@@ -123,23 +136,28 @@ describe('CrmRepository', () => {
     );
 
     // Verify second transaction: unpaid sale, brand 'go-mall' -> 'go_mall' stage -> 'reserved_or_added_to_cart'
+    // Uses sourceId for leadId because customerReferenceHash is missing
     const lead2Id = getDeterministicUuid('rec2');
-    expect(mockDb.query).toHaveBeenNthCalledWith(
-      3,
+    expect(mockDb.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO public.leads'),
       [
         lead2Id,
         orgId,
-        'CA-1002',
+        'Guest CA-1002', // falls back to Guest + documentNumber
         null,
         '2026-07-12',
         5350,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
       ],
     );
 
     const pipeline2Id = getDeterministicUuid('rec2-pipeline');
-    expect(mockDb.query).toHaveBeenNthCalledWith(
-      4,
+    expect(mockDb.query).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO public.pipeline_items'),
       [
         pipeline2Id,
@@ -151,7 +169,7 @@ describe('CrmRepository', () => {
     );
   });
 
-  test('upsertLeadsAndSizing upserts lead profiles and sizing maps when customerReferenceHash is present', async () => {
+  test('upsertLeadsAndSizing upserts lead profiles and sizing maps concurrently when customerReferenceHash is present', async () => {
     const batch: AirtableSyncBatch = {
       records: [
         {
@@ -180,6 +198,13 @@ describe('CrmRepository', () => {
             },
             sourceUpdatedAt: '2026-07-12T15:35:00Z',
             ingestedAt: '2026-07-12T15:40:00Z',
+            bootsHeight: '29',
+            bagCapacity: '20',
+            pantsLength: '32',
+            shirtLength: '28',
+            color: 'navy',
+            size: 'M',
+            customerName: 'Alice Cooper',
           },
         },
         {
@@ -237,13 +262,15 @@ describe('CrmRepository', () => {
       [
         targetCustomerLeadId,
         orgId,
-        'RE-1001',
+        'Alice Cooper',
+        null,
+        '2026-07-12',
         9630,
         '29',
         '20',
         '32',
         '28',
-        'black',
+        'navy',
         'M',
       ],
     );

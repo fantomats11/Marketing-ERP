@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DatabaseClient } from '../config/database.js';
 import type { AirtableSyncBatch } from '../integrations/airtable/connector.js';
+import type { NormalizedTransaction } from '../domain/transaction.js';
 
 export function getDeterministicUuid(input: string): string {
   const hash = createHash('sha256').update(input).digest('hex');
@@ -29,32 +30,60 @@ function mapBrandIdToRoute(brandId: string): string {
 export class CrmRepository {
   public constructor(private readonly db: DatabaseClient) {}
 
+  private async upsertLeadRecord(tx: NormalizedTransaction, leadId: string, orgId: string): Promise<void> {
+    const customerName = tx.customerName || (tx.customerReferenceHash ? 'Customer ' + tx.customerReferenceHash.substring(0, 8) : 'Guest ' + tx.documentNumber);
+    const destination = tx.destination || null;
+    const tripDate = tx.documentDate ? tx.documentDate.split('T')[0] : null;
+    const estimatedBasketValue = tx.amounts.documentTotal;
+
+    const bootsHeight = tx.bootsHeight || null;
+    const bagCapacity = tx.bagCapacity || null;
+    const pantsLength = tx.pantsLength || null;
+    const shirtLength = tx.shirtLength || null;
+    const color = tx.color || null;
+    const size = tx.size || null;
+
+    await this.db.query(
+      `INSERT INTO public.leads (
+        id, organization_id, customer_name, source, destination, trip_date, lead_score, estimated_basket_value,
+        boots_height, bag_capacity, pants_length, shirt_length, color, size
+      ) VALUES ($1, $2, $3, 'airtable_sync', $4, $5, 10, $6, $7, $8, $9, $10, $11, $12)
+      ON CONFLICT (id) DO UPDATE SET
+        customer_name = EXCLUDED.customer_name,
+        destination = EXCLUDED.destination,
+        trip_date = EXCLUDED.trip_date,
+        estimated_basket_value = EXCLUDED.estimated_basket_value,
+        boots_height = EXCLUDED.boots_height,
+        bag_capacity = EXCLUDED.bag_capacity,
+        pants_length = EXCLUDED.pants_length,
+        shirt_length = EXCLUDED.shirt_length,
+        color = EXCLUDED.color,
+        size = EXCLUDED.size`,
+      [
+        leadId,
+        orgId,
+        customerName,
+        destination,
+        tripDate,
+        estimatedBasketValue,
+        bootsHeight,
+        bagCapacity,
+        pantsLength,
+        shirtLength,
+        color,
+        size,
+      ],
+    );
+  }
+
   public async upsertTransactions(batch: AirtableSyncBatch): Promise<void> {
-    for (const record of batch.records) {
+    const orgId = '00000000-0000-4000-8000-000000000001';
+    const promises = batch.records.map(async (record) => {
       const tx = record.transaction;
-      const leadId = getDeterministicUuid(tx.sourceId);
-      const orgId = '00000000-0000-4000-8000-000000000001';
+      const leadId = tx.customerReferenceHash ? getDeterministicUuid(tx.customerReferenceHash) : getDeterministicUuid(tx.sourceId);
 
       // 1. Upsert into public.leads
-      await this.db.query(
-        `INSERT INTO public.leads (
-          id, organization_id, customer_name, source, destination, trip_date, lead_score, estimated_basket_value,
-          boots_height, bag_capacity, pants_length, shirt_length, color, size
-        ) VALUES ($1, $2, $3, 'airtable_sync', $4, $5, 10, $6, null, null, null, null, null, null)
-        ON CONFLICT (id) DO UPDATE SET
-          customer_name = EXCLUDED.customer_name,
-          destination = EXCLUDED.destination,
-          trip_date = EXCLUDED.trip_date,
-          estimated_basket_value = EXCLUDED.estimated_basket_value`,
-        [
-          leadId,
-          orgId,
-          tx.documentNumber,
-          tx.destination || null,
-          tx.documentDate ? tx.documentDate.split('T')[0] : null,
-          tx.amounts.documentTotal,
-        ],
-      );
+      await this.upsertLeadRecord(tx, leadId, orgId);
 
       // 2. Insert/upsert into public.pipeline_items
       const pipelineItemId = getDeterministicUuid(`${tx.sourceId}-pipeline`);
@@ -76,44 +105,19 @@ export class CrmRepository {
           brandRoute,
         ],
       );
-    }
+    });
+    await Promise.all(promises);
   }
 
   public async upsertLeadsAndSizing(batch: AirtableSyncBatch): Promise<void> {
-    for (const record of batch.records) {
-      const tx = record.transaction;
-      if (tx.customerReferenceHash) {
-        const leadId = getDeterministicUuid(tx.customerReferenceHash);
-        const orgId = '00000000-0000-4000-8000-000000000001';
-
-        await this.db.query(
-          `INSERT INTO public.leads (
-            id, organization_id, customer_name, source, lead_score, estimated_basket_value,
-            boots_height, bag_capacity, pants_length, shirt_length, color, size
-          ) VALUES ($1, $2, $3, 'airtable_sync', 10, $4, $5, $6, $7, $8, $9, $10)
-          ON CONFLICT (id) DO UPDATE SET
-            customer_name = EXCLUDED.customer_name,
-            estimated_basket_value = EXCLUDED.estimated_basket_value,
-            boots_height = EXCLUDED.boots_height,
-            bag_capacity = EXCLUDED.bag_capacity,
-            pants_length = EXCLUDED.pants_length,
-            shirt_length = EXCLUDED.shirt_length,
-            color = EXCLUDED.color,
-            size = EXCLUDED.size`,
-          [
-            leadId,
-            orgId,
-            tx.documentNumber,
-            tx.amounts.documentTotal,
-            '29', // default boots_height
-            '20', // default bag_capacity
-            '32', // default pants_length
-            '28', // default shirt_length
-            'black', // default color
-            'M', // default size
-          ],
-        );
-      }
-    }
+    const orgId = '00000000-0000-4000-8000-000000000001';
+    const promises = batch.records
+      .filter((record) => record.transaction.customerReferenceHash !== undefined)
+      .map(async (record) => {
+        const tx = record.transaction;
+        const leadId = tx.customerReferenceHash ? getDeterministicUuid(tx.customerReferenceHash) : getDeterministicUuid(tx.sourceId);
+        await this.upsertLeadRecord(tx, leadId, orgId);
+      });
+    await Promise.all(promises);
   }
 }
