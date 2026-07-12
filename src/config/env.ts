@@ -19,6 +19,7 @@ const RawEnvironmentSchema = z.object({
   GCP_PROJECT_ID: z.string().min(1).optional(),
   GCP_REGION: z.string().min(1).optional(),
   DATABASE_URL: z.url().refine(isPostgresUrl).optional(),
+  POSTGRES_URL: z.url().refine(isPostgresUrl).optional(),
   AIRTABLE_SYNC_INTERVAL_MINUTES: z.coerce.number().int().positive().default(15),
 });
 
@@ -102,7 +103,7 @@ function createAppConfig(raw: RawEnvironment): AppConfig {
   defineServerSecret(airtable, 'pat', raw.AIRTABLE_PAT);
 
   const database: DatabaseConfig = {};
-  defineServerSecret(database, 'url', raw.DATABASE_URL);
+  defineServerSecret(database, 'url', raw.DATABASE_URL || raw.POSTGRES_URL);
 
   return {
     appEnv: raw.APP_ENV,
