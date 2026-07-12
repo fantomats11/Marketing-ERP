@@ -65,9 +65,9 @@ graph TD
 *   **State Management:** Supabase JS Client for secure, real-time database queries.
 
 ### 3.3 Database & Analytics
-*   **Operational Database:** Supabase (PostgreSQL with Row Level Security (RLS) policies configured for role-based access control)
-*   **Analytical Warehouse:** Google BigQuery (for historical trends, attribution modeling, and high-volume data-marts)
-*   **Reporting BI:** Looker Studio (for flexible executive reports)
+*   **Operational Database:** Supabase (Single-tenant PostgreSQL serving both UAT and Production environments, utilizing Row Level Security (RLS) policies and built-in Supabase Auth).
+*   **Analytical Warehouse:** Google BigQuery (Fed by continuous replication from Supabase for long-term trend analysis, attribution modeling, and high-volume data-marts).
+*   **Reporting BI:** Looker Studio (for flexible executive reports connected to BigQuery).
 
 ### 3.4 Hosting & Infrastructure (GCP)
 *   **Compute:** Google Cloud Run (Serverless container runtime for both Next.js app and the Integration service)
@@ -83,6 +83,7 @@ graph TD
 *   **Scope:** Manages master records for Brands, Branches, Channels, Connected Accounts, Campaigns, Product Master, Employees, Competitors, and UTM source dictionary.
 *   **Branch Routing:** Distinguishes branches accurately (e.g., `rac-rama9`, `gomall-rama9`, `rac-vibhavadi`, and the future `phetkasem-future` site).
 *   **Location Migration Safety:** Restricts mutation of high-value `rac-vibhavadi` Google Business Profile (GBP) location. GBP integration is read-only.
+*   **RBAC & Brand Access Policy (Role & Brand Shared Access):** Internal users log in via Google Workspace SSO. Dashboard views, menu tabs, and data filters are restricted based on user role (Content, Sales, Admin) and the brand they manage. Executive and System Admin accounts bypass brand filters for company-wide visibility.
 *   **Audit Trail:** Logs every approval request, manual mapping override, and account modification.
 
 ### 4.2 Integration Hub
@@ -108,8 +109,11 @@ graph TD
 
 ### 4.6 SEO, SEM, & AI Visibility (GEO Auditing)
 *   **Search Engine Visibility:** Tracks GSC metrics (queries, average position, CTR, click share) and GA4 session attributions. Matches keyword research and search volumes via Google Ads Keyword Planner API.
+*   **Paid Media Ingestion (Hybrid Ingestion):**
+    *   *Automated APIs:* Automatically syncs spend/performance from Meta Ads (GO Mall account), Google Ads, and TikTok Ads.
+    *   *Manual CSV Ingestion:* Provides Excel/CSV upload portal and basic manual forms to input weekly advertising spend and KPIs for agency-managed accounts (like Rent A Coat Meta Ads).
 *   **AI Mention Simulation Engine (GEO Tracking):**
-    *   Runs automated daily queries via OpenAI, Gemini, and Perplexity APIs simulating traveler search queries (e.g., "เช่าชุดกันหนาวที่ไหนดี", "ลองจอนแบรนด์ไหนดี").
+    *   Runs automated scheduled queries (1-2 times a week, or daily during peak travel seasons) via OpenAI, Gemini, and Perplexity APIs using 10-20 main keywords per brand (e.g., "เช่าชุดกันหนาวที่ไหนดี", "ลองจอน Winterra").
     *   AI parses the engine output to record: cited brands, recommended products, cited URLs, and competitive mentions.
     *   Calculates a metric called **AI Share of Voice (SoV)** for Rent A Coat, GO Mall, and Winterra compared to competitors.
 
@@ -127,12 +131,13 @@ graph TD
 *   **Versioning:** Targets are versioned to preserve historical scorecard accuracy when future KPI benchmarks are updated.
 
 ### 4.9 Reconciliation & Data Quality
-*   **Airtable $\leftrightarrow$ FlowAccount:** Compares transaction subtotal, VAT, total, and payment status. Mismatches are flagged to an Actionable Reconciliation Queue.
+*   **Airtable $\leftrightarrow$ FlowAccount (Daily Reconciliation Sync):** Nightly background script compares transactions (subtotal, VAT, total, payment status). Flags discrepancies and missing items directly to an **Actionable Reconciliation Queue & Alerts** on the ERP dashboard for the accounting team.
 *   **Validation Queues:** Lists records with missing keys, unknown SKUs, stale data sources, or mismatched RE/CA combinations.
 
 ### 4.10 Omnichannel Chat & Agent Copilot (Chat Replying Solution)
 *   **Unified Multi-Channel Inbox:** Aggregates incoming customer chats from LINE OA, Facebook Messenger, Instagram DM, and TikTok messages into a single, unified view in the Next.js ERP dashboard.
-*   **Airtable Customer Match & Context Card:** Dynamically matches chat handlers (e.g. LINE ID or FB Page user ref) with Airtable customer profiles. Displays a Customer Context Card showing:
+*   **Airtable Customer Match (Mobile Number Match):** Customers are prompted to input their mobile number via a LINE LIFF or Facebook Messenger Webview form on their first chat. The system automatically queries Airtable and links their social chat handles.
+*   **Customer Context Card:** Displays the matched customer's details alongside the chat window:
     *   Active sizes (boots height, pants/shirt length) from WooCommerce/Airtable attribute records.
     *   Past rental history (`RE` records), active trip destinations, and trip dates.
 *   **AI Chat Copilot (LLM-driven helper):**
