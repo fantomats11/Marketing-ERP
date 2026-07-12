@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { startApplication, type StartupApp } from '../src/startup.js';
+import type { AppConfig } from '../src/config/env.js';
 
 const startupFailure = 'Application startup failed';
+
+const mockConfig = (port: number): AppConfig => ({
+  appEnv: 'development',
+  port,
+  logLevel: 'info',
+  airtable: { apiUrl: 'https://api.airtable.com' },
+  gcp: {},
+  database: { url: 'postgresql://postgres:postgres@localhost:5432/postgres' },
+  sync: { intervalMinutes: 15 },
+});
 
 describe('application startup', () => {
   it('uses the validated configuration port and listens on all interfaces', async () => {
@@ -13,7 +24,7 @@ describe('application startup', () => {
       close: async () => {},
     };
 
-    await startApplication({ port: 4321 }, {
+    await startApplication(mockConfig(4321), {
       buildApp: () => app,
       logError: () => {},
       setExitCode: () => {},
@@ -27,7 +38,7 @@ describe('application startup', () => {
     const exitCodes: number[] = [];
     let buildCalls = 0;
 
-    await startApplication({ port: Number.NaN }, {
+    await startApplication(mockConfig(Number.NaN), {
       buildApp: () => {
         buildCalls += 1;
         throw new Error('app should not be built');
@@ -54,7 +65,7 @@ describe('application startup', () => {
       },
     };
 
-    await startApplication({ port: 4321 }, {
+    await startApplication(mockConfig(4321), {
       buildApp: () => app,
       logError: (message) => messages.push(message),
       setExitCode: (code) => exitCodes.push(code),

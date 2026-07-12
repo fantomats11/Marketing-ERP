@@ -59,4 +59,5 @@ export interface IntegrationConnector {
   healthCheck(): Promise<ConnectorHealthResult>;
   syncIncremental(request: IncrementalSyncRequest): Promise<SyncResult>;
   syncBackfill(request: BackfillSyncRequest): Promise<SyncResult>;
+  readIncrementalBatch?(request: IncrementalSyncRequest): Promise<any>;
 }

@@ -8,7 +8,7 @@ import {
   IntegrationAuthorizationRequiredError,
   registerIntegrationRoutes,
 } from '../../src/routes/integrations.js';
-import { SyncService, type SyncCommitStore } from '../../src/sync/sync-service.js';
+import { SyncService } from '../../src/sync/sync-service.js';
 
 const result: SyncResult = {
   cursor: { updatedAt: '2026-07-12T02:00:00.000Z', sourceRecordId: 'rec-12' },
@@ -192,14 +192,24 @@ function createDependencies(connectors: readonly IntegrationConnector[]): {
 } {
   const registry = new IntegrationRegistry(connectors);
   const times = [new Date('2026-07-12T01:00:00.000Z'), new Date('2026-07-12T01:05:00.000Z')];
-  const syncCommitStore: SyncCommitStore = {
-    getCheckpoint: async () => undefined,
-    commit: async (command) => ({ status: 'committed', completedRun: command.completedRun }),
+  
+  let currentCursor: any = undefined;
+  const checkpointStore = {
+    get: async () => currentCursor,
+    put: async (id: string, cursor: any) => {
+      currentCursor = cursor;
+    },
   };
+  const crmRepository = {
+    upsertTransactions: async () => {},
+    upsertLeadsAndSizing: async () => {},
+  } as any;
+
   return {
     registry,
     syncService: new SyncService(registry, {
-      syncCommitStore,
+      checkpointStore,
+      crmRepository,
       now: () => times.shift() ?? new Date('2026-07-12T01:05:00.000Z'),
       generateRunId: () => 'route-run',
     }),
@@ -208,13 +218,43 @@ function createDependencies(connectors: readonly IntegrationConnector[]): {
 
 function createConnector(
   id: string,
-  syncIncremental: IntegrationConnector['syncIncremental'],
+  syncCallback: () => Promise<any>,
   healthStatus: 'healthy' | 'degraded' = 'healthy',
 ): IntegrationConnector {
   return {
     id,
     healthCheck: async () => ({ status: healthStatus }),
-    syncIncremental,
+    syncIncremental: async () => { throw new Error('not used'); },
     syncBackfill: async () => result,
+    readIncrementalBatch: async (request: any) => {
+      const res = await syncCallback();
+      // If it returned a SyncResult shape, map it to AirtableSyncBatch for testing
+      if (res && res.counts) {
+        return {
+          records: Array.from({ length: res.counts.created }, (_, i) => ({
+            sourceKey: { baseId: 'b', table: 't', recordId: `r-${i}` },
+            upsertKey: `k-${i}`,
+            transaction: {} as any,
+          })),
+          recordIssues: res.warnings.flatMap((w: any) =>
+            Array.from({ length: w.count }, () => ({
+              sourceKey: { baseId: 'b', table: 't', recordId: 'r' },
+              severity: 'warning',
+              code: w.code,
+            }))
+          ),
+          orderGroups: [],
+          detailReferences: [],
+          sourceCounts: {
+            transactionRecordsFetched: res.counts.fetched,
+            transactionRecordsSelected: res.counts.created,
+            transactionDetailRecordsFetched: 0,
+          },
+          checkpointBlocked: false,
+          cursor: res.cursor,
+        };
+      }
+      return res;
+    },
   };
 }

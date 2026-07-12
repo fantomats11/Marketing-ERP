@@ -1,13 +1,13 @@
-import { createHash } from 'node:crypto';
-
 import { IntegrationRegistry } from '../integrations/registry.js';
 import type {
   IntegrationConnector,
   SyncCounts,
   SyncCursor,
-  SyncResult,
   SyncWarning,
 } from '../integrations/types.js';
+import type { AirtableSyncBatch } from '../integrations/airtable/connector.js';
+import type { CheckpointStore } from './checkpoint-store.js';
+import type { CrmRepository } from './crm-repository.js';
 
 export const SafePublicWarningCodes = [
   'AMBIGUOUS_DOCUMENT_NUMBERS',
@@ -70,45 +70,9 @@ export interface SyncRunHandle {
   readonly completion: Promise<CompletedSyncRun | FailedSyncRun>;
 }
 
-export interface PersistedSyncResult {
-  readonly integrationId: string;
-  readonly runId: string;
-  readonly startedAt: string;
-  readonly counts: SyncCounts;
-  readonly warnings: readonly SyncWarning[];
-}
-
-export interface AtomicSyncCommit {
-  readonly integrationId: string;
-  readonly idempotencyKey: string;
-  readonly expectedCursor?: SyncCursor;
-  readonly nextCursor?: SyncCursor;
-  readonly result: PersistedSyncResult;
-  readonly completedRun: CompletedSyncRun;
-}
-
-export interface SyncCommitOutcome {
-  readonly status: 'committed' | 'already_committed';
-  readonly completedRun: CompletedSyncRun;
-}
-
-/**
- * Durable sync boundary. `commit` must first look up `idempotencyKey`; when it
- * exists, it returns the existing canonical terminal outcome without evaluating
- * CAS. Otherwise it compare-and-sets `expectedCursor`, atomically persists the
- * safe result, terminal run, and `nextCursor`, and returns the committed
- * canonical outcome. A rejection must expose no visible commit; an adapter with
- * an uncertain outcome must reconcile that same key before rejecting. Outcomes
- * outside the declared runtime shape violate the adapter contract and are
- * treated by the service as `SYNC_COMMIT_FAILED`.
- */
-export interface SyncCommitStore {
-  getCheckpoint(integrationId: string): Promise<SyncCursor | undefined>;
-  commit(command: AtomicSyncCommit): Promise<SyncCommitOutcome>;
-}
-
 export interface SyncServiceDependencies {
-  readonly syncCommitStore: SyncCommitStore;
+  readonly checkpointStore: CheckpointStore;
+  readonly crmRepository: CrmRepository;
   readonly now: () => Date;
   readonly generateRunId: () => string;
 }
@@ -168,32 +132,49 @@ export class SyncService {
     try {
       let expectedCursor: SyncCursor | undefined;
       try {
-        expectedCursor = await this.dependencies.syncCommitStore.getCheckpoint(run.integrationId);
+        expectedCursor = await this.dependencies.checkpointStore.get(run.integrationId);
       } catch {
         return this.fail(run, 'CHECKPOINT_READ_FAILED');
       }
 
-      let connectorResult: SyncResult;
+      if (connector.readIncrementalBatch === undefined) {
+        return this.fail(run, 'CONNECTOR_SYNC_FAILED');
+      }
+
+      let batch: AirtableSyncBatch;
       try {
-        connectorResult = await connector.syncIncremental(
+        batch = await connector.readIncrementalBatch(
           expectedCursor === undefined ? {} : { cursor: copyCursor(expectedCursor) },
         );
       } catch {
         return this.fail(run, 'CONNECTOR_SYNC_FAILED');
       }
 
-      let safeConnectorResult: SafeConnectorResult;
-      try {
-        safeConnectorResult = normalizeConnectorResult(connectorResult);
-      } catch {
+      if (batch === null || typeof batch !== 'object' || !batch.sourceCounts) {
         return this.fail(run, 'INVALID_CONNECTOR_RESULT');
       }
 
-      const safeResult = projectPersistedResult(run, safeConnectorResult);
+      try {
+        await this.dependencies.crmRepository.upsertTransactions(batch);
+        await this.dependencies.crmRepository.upsertLeadsAndSizing(batch);
+      } catch {
+        return this.fail(run, 'SYNC_COMMIT_FAILED');
+      }
+
+      if (batch.cursor !== undefined) {
+        try {
+          await this.dependencies.checkpointStore.put(run.integrationId, batch.cursor);
+        } catch {
+          return this.fail(run, 'SYNC_COMMIT_FAILED');
+        }
+      }
+
       const completedAt = this.readTerminalTime();
       if (completedAt === undefined) {
         return this.fail(run, 'CLOCK_FAILED');
       }
+
+      const { counts, warnings } = getSyncCountsAndWarnings(batch);
 
       const completed: CompletedSyncRun = {
         integrationId: run.integrationId,
@@ -201,22 +182,12 @@ export class SyncService {
         status: 'completed',
         startedAt: run.startedAt,
         completedAt,
-        counts: copyCounts(safeResult.counts),
-        warnings: copyWarnings(safeResult.warnings),
+        counts,
+        warnings,
       };
-      const command = createAtomicCommit(run.integrationId, expectedCursor, safeConnectorResult.cursor,
-        safeResult, completed);
 
-      let canonical: CompletedSyncRun;
-      try {
-        const outcome = await this.dependencies.syncCommitStore.commit(copyAtomicCommit(command));
-        canonical = copyCommitOutcomeRun(outcome, run.integrationId);
-      } catch {
-        return this.fail(run, 'SYNC_COMMIT_FAILED');
-      }
-
-      this.latestRuns.set(run.integrationId, copyRun(canonical));
-      return copyRun(canonical);
+      this.latestRuns.set(run.integrationId, copyRun(completed));
+      return copyRun(completed);
     } finally {
       this.activeIntegrationIds.delete(run.integrationId);
     }
@@ -245,242 +216,36 @@ export class SyncService {
   }
 }
 
-interface SafeConnectorResult {
-  readonly cursor?: SyncCursor;
-  readonly counts: SyncCounts;
-  readonly warnings: readonly SyncWarning[];
-}
+function getSyncCountsAndWarnings(batch: AirtableSyncBatch): {
+  counts: SyncCounts;
+  warnings: readonly SyncWarning[];
+} {
+  const fetched = batch.sourceCounts.transactionRecordsFetched;
+  const created = batch.sourceCounts.transactionRecordsSelected;
+  const updated = 0;
+  const skipped = Math.max(0, fetched - created);
 
-function normalizeConnectorResult(result: unknown): SafeConnectorResult {
-  if (result === null || typeof result !== 'object') {
-    throw new TypeError('Invalid connector result');
-  }
-  const rawResult = result as {
-    readonly counts?: unknown;
-    readonly warnings?: unknown;
-    readonly cursor?: unknown;
-  };
-  const rawCounts = rawResult.counts;
-  const rawWarnings = rawResult.warnings;
-  const rawCursor = rawResult.cursor;
-
-  return {
-    ...(rawCursor === undefined ? {} : { cursor: normalizeCursor(rawCursor) }),
-    counts: normalizeCounts(rawCounts),
-    warnings: normalizeConnectorWarnings(rawWarnings),
-  };
-}
-
-function projectPersistedResult(
-  run: RunningSyncRun,
-  result: SafeConnectorResult,
-): PersistedSyncResult {
-  return {
-    integrationId: run.integrationId,
-    runId: run.runId,
-    startedAt: run.startedAt,
-    counts: copyCounts(result.counts),
-    warnings: copyWarnings(result.warnings),
-  };
-}
-
-function createAtomicCommit(
-  integrationId: string,
-  expectedCursor: SyncCursor | undefined,
-  nextCursor: SyncCursor | undefined,
-  result: PersistedSyncResult,
-  completedRun: CompletedSyncRun,
-): AtomicSyncCommit {
-  const base = {
-    integrationId,
-    idempotencyKey: deriveIdempotencyKey(integrationId, expectedCursor, nextCursor, result),
-    result: copyPersistedResult(result),
-    completedRun: copyRun(completedRun),
-  };
-  return {
-    ...base,
-    ...(expectedCursor === undefined ? {} : { expectedCursor: copyCursor(expectedCursor) }),
-    ...(nextCursor === undefined ? {} : { nextCursor: copyCursor(nextCursor) }),
-  };
-}
-
-function deriveIdempotencyKey(
-  integrationId: string,
-  expectedCursor: SyncCursor | undefined,
-  nextCursor: SyncCursor | undefined,
-  result: PersistedSyncResult,
-): string {
-  const logicalCommit = [
-    integrationId,
-    cursorHashInput(expectedCursor),
-    cursorHashInput(nextCursor),
-    [result.counts.fetched, result.counts.created, result.counts.updated, result.counts.skipped],
-    result.warnings.map((warning) => [warning.code, warning.count]),
-  ];
-  return createHash('sha256').update(JSON.stringify(logicalCommit)).digest('hex');
-}
-
-function normalizeConnectorWarnings(value: unknown): readonly SyncWarning[] {
-  if (!Array.isArray(value)) throw new TypeError('Invalid connector warnings');
   const countsByCode = new Map<SafePublicWarningCode, number>();
-  for (const warning of value) {
-    if (warning === null || typeof warning !== 'object') {
-      throw new TypeError('Invalid connector warning');
-    }
-    const rawWarning = warning as { readonly code?: unknown; readonly count?: unknown };
-    const rawCode = rawWarning.code;
-    const rawCount = rawWarning.count;
-    const hasSafeCount = isSafeCount(rawCount);
-    const hasSafeCode = typeof rawCode === 'string' && isSafePublicWarningCode(rawCode);
-    const code = hasSafeCode && hasSafeCount ? rawCode : 'INTEGRATION_WARNING';
-    const count = hasSafeCount ? rawCount : 1;
-    countsByCode.set(code, safeAdd(countsByCode.get(code) ?? 0, count));
+  for (const issue of batch.recordIssues || []) {
+    const rawCode = issue.code;
+    const code = typeof rawCode === 'string' && isSafePublicWarningCode(rawCode)
+      ? rawCode
+      : 'INTEGRATION_WARNING';
+    countsByCode.set(code, (countsByCode.get(code) ?? 0) + 1);
   }
-  return [...countsByCode]
-    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+
+  const warnings = [...countsByCode]
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([code, count]) => ({ code, count }));
-}
 
-function safeAdd(left: number, right: number): number {
-  return Math.min(Number.MAX_SAFE_INTEGER, left + right);
-}
-
-function cursorHashInput(cursor: SyncCursor | undefined): readonly [string, string] | null {
-  return cursor === undefined ? null : [cursor.updatedAt, cursor.sourceRecordId];
+  return {
+    counts: { fetched, created, updated, skipped },
+    warnings,
+  };
 }
 
 function isSafePublicWarningCode(code: string): code is SafePublicWarningCode {
   return (SafePublicWarningCodes as readonly string[]).includes(code);
-}
-
-function copyCommitOutcomeRun(
-  outcome: unknown,
-  integrationId: string,
-): CompletedSyncRun {
-  if (outcome === null || typeof outcome !== 'object') {
-    throw new TypeError('Invalid sync commit outcome');
-  }
-  const rawOutcome = outcome as { readonly status?: unknown; readonly completedRun?: unknown };
-  const rawStatus = rawOutcome.status;
-  const rawRun = rawOutcome.completedRun;
-  if (rawStatus !== 'committed' && rawStatus !== 'already_committed') {
-    throw new TypeError('Invalid sync commit outcome');
-  }
-  if (rawRun === null || typeof rawRun !== 'object') {
-    throw new TypeError('Invalid canonical completed sync run');
-  }
-  const run = rawRun as {
-    readonly status?: unknown;
-    readonly integrationId?: unknown;
-    readonly runId?: unknown;
-    readonly startedAt?: unknown;
-    readonly completedAt?: unknown;
-    readonly counts?: unknown;
-    readonly warnings?: unknown;
-  };
-  const status = run.status;
-  const canonicalIntegrationId = run.integrationId;
-  const runId = run.runId;
-  const startedAt = run.startedAt;
-  const completedAt = run.completedAt;
-  const rawCounts = run.counts;
-  const rawWarnings = run.warnings;
-
-  if (status !== 'completed'
-    || canonicalIntegrationId !== integrationId
-    || !isNonemptyString(runId)
-    || !isValidTimestamp(startedAt)
-    || !isValidTimestamp(completedAt)) {
-    throw new TypeError('Invalid canonical completed sync run');
-  }
-  return {
-    integrationId: canonicalIntegrationId,
-    runId,
-    status,
-    startedAt,
-    completedAt,
-    counts: normalizeCounts(rawCounts),
-    warnings: normalizeCanonicalWarnings(rawWarnings),
-  };
-}
-
-function isNonemptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0;
-}
-
-function isValidTimestamp(value: unknown): value is string {
-  return isNonemptyString(value) && Number.isFinite(Date.parse(value));
-}
-
-function normalizeCounts(value: unknown): SyncCounts {
-  if (value === null || typeof value !== 'object') throw new TypeError('Invalid sync counts');
-  const counts = value as Partial<Record<keyof SyncCounts, unknown>>;
-  const fetched = counts.fetched;
-  const created = counts.created;
-  const updated = counts.updated;
-  const skipped = counts.skipped;
-  if (!isSafeCount(fetched) || !isSafeCount(created)
-    || !isSafeCount(updated) || !isSafeCount(skipped)) {
-    throw new TypeError('Invalid sync counts');
-  }
-  return { fetched, created, updated, skipped };
-}
-
-function normalizeCursor(value: unknown): SyncCursor {
-  if (value === null || typeof value !== 'object') throw new TypeError('Invalid connector cursor');
-  const cursor = value as { readonly updatedAt?: unknown; readonly sourceRecordId?: unknown };
-  const updatedAt = cursor.updatedAt;
-  const sourceRecordId = cursor.sourceRecordId;
-  if (!isValidTimestamp(updatedAt) || !isNonemptyString(sourceRecordId)) {
-    throw new TypeError('Invalid connector cursor');
-  }
-  return { updatedAt, sourceRecordId };
-}
-
-function isSafeCount(value: unknown): value is number {
-  return Number.isSafeInteger(value) && (value as number) >= 0;
-}
-
-function normalizeCanonicalWarnings(value: unknown): readonly SyncWarning[] {
-  if (!Array.isArray(value)) throw new TypeError('Invalid canonical completed sync run');
-  const warnings: SyncWarning[] = [];
-  const length = value.length;
-  for (let index = 0; index < length; index += 1) {
-    const warning = value[index];
-    if (warning === null || typeof warning !== 'object') {
-      throw new TypeError('Invalid canonical completed sync run');
-    }
-    const rawWarning = warning as { readonly code?: unknown; readonly count?: unknown };
-    const code = rawWarning.code;
-    const count = rawWarning.count;
-    if (typeof code !== 'string' || !isSafePublicWarningCode(code) || !isSafeCount(count)) {
-      throw new TypeError('Invalid canonical completed sync run');
-    }
-    warnings.push({ code, count });
-  }
-  return warnings;
-}
-
-function copyAtomicCommit(command: AtomicSyncCommit): AtomicSyncCommit {
-  return {
-    integrationId: command.integrationId,
-    idempotencyKey: command.idempotencyKey,
-    ...(command.expectedCursor === undefined
-      ? {} : { expectedCursor: copyCursor(command.expectedCursor) }),
-    ...(command.nextCursor === undefined ? {} : { nextCursor: copyCursor(command.nextCursor) }),
-    result: copyPersistedResult(command.result),
-    completedRun: copyRun(command.completedRun),
-  };
-}
-
-function copyPersistedResult(result: PersistedSyncResult): PersistedSyncResult {
-  return {
-    integrationId: result.integrationId,
-    runId: result.runId,
-    startedAt: result.startedAt,
-    counts: copyCounts(result.counts),
-    warnings: copyWarnings(result.warnings),
-  };
 }
 
 function copyRun<T extends SyncRun>(run: T): T {
