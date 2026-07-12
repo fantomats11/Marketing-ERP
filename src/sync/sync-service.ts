@@ -156,7 +156,6 @@ export class SyncService {
 
       try {
         await this.dependencies.crmRepository.upsertTransactions(batch);
-        await this.dependencies.crmRepository.upsertLeadsAndSizing(batch);
       } catch {
         return this.fail(run, 'SYNC_COMMIT_FAILED');
       }
