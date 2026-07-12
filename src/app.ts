@@ -28,24 +28,20 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   <title>Marketing ERP - CRM Integration Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-primary: #0b0f19;
-      --bg-surface: rgba(22, 28, 45, 0.6);
-      --bg-card: rgba(30, 41, 59, 0.4);
-      --border-color: rgba(255, 255, 255, 0.08);
+      --bg-primary: #0f172a;
+      --bg-surface: #1e293b;
+      --border-color: #334155;
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
-      --accent-violet: #8b5cf6;
-      --accent-pink: #ec4899;
-      --accent-cyan: #06b6d4;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
-      --glow-violet: rgba(139, 92, 246, 0.15);
-      --glow-pink: rgba(236, 72, 153, 0.15);
-      --font-family: 'Plus Jakarta Sans', sans-serif;
+      --font-family: 'Inter', sans-serif;
     }
 
     * {
@@ -56,15 +52,11 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 
     body {
       background-color: var(--bg-primary);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.12) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.12) 0px, transparent 50%);
-      background-attachment: fixed;
       font-family: var(--font-family);
       color: var(--text-primary);
       min-height: 100vh;
-      padding: 2.5rem 1.5rem;
-      line-height: 1.5;
+      padding: 2rem;
+      line-height: 1.6;
     }
 
     .container {
@@ -75,19 +67,17 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2.5rem;
+      align-items: flex-start;
+      margin-bottom: 2rem;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 1.5rem;
     }
 
     .brand h1 {
-      font-size: 2rem;
+      font-size: 1.75rem;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-violet) 70%, var(--accent-pink) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
+      color: var(--text-primary);
+      letter-spacing: -0.025em;
     }
 
     .brand p {
@@ -99,86 +89,52 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     .badge {
       display: inline-flex;
       align-items: center;
-      padding: 0.35rem 0.85rem;
-      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
       font-size: 0.75rem;
       font-weight: 600;
-      letter-spacing: 0.5px;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .badge-success { background: rgba(16, 185, 129, 0.12); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-    .badge-warning { background: rgba(245, 158, 11, 0.12); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-    .badge-danger { background: rgba(239, 68, 68, 0.12); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .badge-info { background: rgba(6, 182, 212, 0.12); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
     .grid-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
 
     .card {
       background: var(--bg-surface);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-color);
-      border-radius: 1.25rem;
-      padding: 1.75rem;
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.4);
-    }
-
-    .card:hover::before {
-      opacity: 1;
+      border-radius: 6px;
+      padding: 1.5rem;
     }
 
     .card-stat-title {
-      font-size: 0.875rem;
-      font-weight: 500;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.05em;
     }
 
     .card-stat-value {
-      font-size: 2.25rem;
+      font-size: 2rem;
       font-weight: 700;
       margin-top: 0.5rem;
-      letter-spacing: -1px;
+      color: var(--text-primary);
     }
-
-    .card-stat-value.glow-violet { text-shadow: 0 0 15px var(--glow-violet); color: #c084fc; }
-    .card-stat-value.glow-pink { text-shadow: 0 0 15px var(--glow-pink); color: #f472b6; }
-    .card-stat-value.glow-cyan { text-shadow: 0 0 15px rgba(6, 182, 212, 0.2); color: #22d3ee; }
 
     .main-grid {
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 3fr 1fr;
       gap: 1.5rem;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2rem;
     }
 
     @media (max-width: 1024px) {
@@ -191,83 +147,39 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
     }
 
     .panel-title {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 600;
-      letter-spacing: -0.2px;
-    }
-
-    /* Table styling */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    th {
-      padding: 1rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    td {
-      padding: 1.15rem 1rem;
-      font-size: 0.95rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-primary);
     }
 
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
-    }
-
     .btn {
-      background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-pink) 100%);
+      background-color: var(--accent);
       color: #fff;
       border: none;
-      padding: 0.75rem 1.75rem;
-      font-size: 0.95rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
       font-weight: 600;
-      border-radius: 0.75rem;
+      border-radius: 4px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+      transition: background-color 0.15s ease;
     }
 
     .btn:hover {
-      opacity: 0.95;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-    }
-
-    .btn:active {
-      transform: translateY(1px);
+      background-color: var(--accent-hover);
     }
 
     .btn:disabled {
-      background: #334155;
+      background-color: #475569;
       cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
       opacity: 0.6;
     }
 
@@ -275,41 +187,38 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-top: 1rem;
-      font-size: 0.875rem;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
       color: var(--text-secondary);
     }
 
     .pulse-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background-color: var(--success);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--success);
     }
 
     .pulse-dot.running {
       background-color: var(--warning);
-      box-shadow: 0 0 8px var(--warning);
-      animation: pulse 1.5s infinite ease-in-out;
+      animation: pulse 1s infinite ease-in-out;
     }
 
     .pulse-dot.idle {
       background-color: var(--text-secondary);
-      box-shadow: none;
     }
 
     @keyframes pulse {
-      0% { transform: scale(0.9); opacity: 0.4; }
-      50% { transform: scale(1.1); opacity: 1; }
-      100% { transform: scale(0.9); opacity: 0.4; }
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
     }
 
     .pipeline-board {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 1rem;
-      margin-top: 1.5rem;
+      gap: 0.75rem;
+      margin-top: 1rem;
     }
 
     @media (max-width: 768px) {
@@ -319,70 +228,97 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     }
 
     .pipeline-column {
-      background: rgba(22, 28, 45, 0.3);
+      background: #111827;
       border: 1px solid var(--border-color);
-      border-radius: 1rem;
-      padding: 1rem;
-      min-height: 250px;
+      border-radius: 4px;
+      padding: 0.75rem;
+      min-height: 400px;
     }
 
     .pipeline-column-header {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text-secondary);
       text-transform: uppercase;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
     }
 
     .pipeline-column-count {
       background: var(--border-color);
       color: var(--text-primary);
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
+      padding: 0.1rem 0.3rem;
+      border-radius: 2px;
+      font-size: 0.7rem;
     }
 
     .lead-card {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 0.5rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
       padding: 0.75rem;
-      margin-bottom: 0.75rem;
-      font-size: 0.85rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-    }
-
-    .lead-card:hover {
-      border-color: rgba(255, 255, 255, 0.12);
-      transform: translateY(-1px);
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
     }
 
     .lead-name {
       font-weight: 600;
       margin-bottom: 0.25rem;
+      color: var(--text-primary);
     }
 
     .lead-meta {
       color: var(--text-secondary);
       font-size: 0.75rem;
-      margin-top: 0.25rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .sizing-badge-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .sizing-badge {
+      background: #334155;
+      color: #cbd5e1;
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+      font-size: 0.65rem;
+      font-weight: 500;
+    }
+
+    .meta-item {
       display: flex;
       justify-content: space-between;
+      border-top: 1px dashed rgba(255, 255, 255, 0.05);
+      padding-top: 0.25rem;
     }
 
     .spinner {
       animation: spin 1s linear infinite;
       display: inline-block;
-      width: 1rem;
-      height: 1rem;
+      width: 0.85rem;
+      height: 0.85rem;
       border: 2px solid currentColor;
       border-right-color: transparent;
       border-radius: 50%;
       vertical-align: text-bottom;
+    }
+
+    .freshness-tag {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      display: block;
     }
 
     @keyframes spin {
@@ -394,29 +330,31 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   <div class="container">
     <header>
       <div class="brand">
-        <h1>Marketing ERP - Integration Hub</h1>
-        <p>ระบบบูรณาการและเชื่อมต่อข้อมูล CRM & Airtable ประจำแบรนด์ GO Mall & Rent A Coat</p>
+        <h1>GO Mall & Rent A Coat - CRM Hub</h1>
+        <p>Operational CRM Board & Real-time Integration Ingestion Control</p>
       </div>
-      <div id="connection-status">
-        <span class="badge badge-success">Online & Healthy</span>
+      <div>
+        <span class="badge badge-success">System Stable</span>
       </div>
     </header>
 
     <div class="grid-stats">
       <div class="card">
-        <div class="card-stat-title">ลูกค้าเป้าหมายทั้งหมด (Total Leads)</div>
-        <div class="card-stat-value glow-violet" id="total-leads-val">-</div>
+        <div class="card-stat-title">Total Active CRM Leads</div>
+        <div class="card-stat-value" id="total-leads-val">-</div>
+        <span class="freshness-tag">Source: public.leads</span>
       </div>
       <div class="card">
-        <div class="card-stat-title">มูลค่าตระกร้าประเมิน (Estimated Value)</div>
-        <div class="card-stat-value glow-pink" id="total-value-val">฿-</div>
+        <div class="card-stat-title">Estimated Basket Value</div>
+        <div class="card-stat-value" id="total-value-val">฿-</div>
+        <span class="freshness-tag">Source: Airtable document totals</span>
       </div>
       <div class="card">
-        <div class="card-stat-title">การซิงค์ข้อมูลรอบถัดไป (Sync Status)</div>
-        <div class="card-stat-value glow-cyan" id="sync-run-status">Idle</div>
+        <div class="card-stat-title">Ingestion Service Status</div>
+        <div class="card-stat-value" id="sync-run-status">IDLE</div>
         <div class="sync-status-indicator">
           <div class="pulse-dot idle" id="sync-pulse"></div>
-          <span id="sync-status-text">พร้อมสั่งรันซิงค์ข้อมูล</span>
+          <span id="sync-status-text">Ready to run sync</span>
         </div>
       </div>
     </div>
@@ -424,7 +362,7 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     <div class="main-grid">
       <div class="card">
         <div class="panel-header">
-          <h2 class="panel-title">กระดานการขาย CRM (CRM Pipeline Board)</h2>
+          <h2 class="panel-title">CRM Lead Sales Kanban Board</h2>
         </div>
         <div class="pipeline-board">
           <div class="pipeline-column">
@@ -465,25 +403,29 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         </div>
       </div>
 
-      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+      <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem;">
         <div>
           <div class="panel-header">
-            <h2 class="panel-title">ตัวจัดการ Airtable (Sync Control)</h2>
+            <h2 class="panel-title">Airtable Ingest Controller</h2>
           </div>
-          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
-            ระบบจะดึงข้อมูลบิลและขนาดสัดส่วนสแปมลูกค้า (Sizing Info) จาก Airtable บัญชีสาขา Rama9, Vibhavadi และ PFS เพื่อซิงค์ลง PostgreSQL Supabase ทันที
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+            Triggers incremental transaction ingestion from Airtable bases (GO Mall & Rent A Coat) into Supabase PostgreSQL.
           </p>
+          <div style="background: #1e293b; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+            <strong>Actionable Decisions:</strong><br>
+            If records mismatch or data is delayed, click trigger button below to sync manually.
+          </div>
         </div>
         <div>
           <button class="btn" id="sync-btn" onclick="triggerAirtableSync()" style="width: 100%; justify-content: center;">
-            <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 6h-3.07M4 9h3.07m-3.07 0l2.122 2.122"></path>
             </svg>
-            ดึงข้อมูลจาก Airtable เดี๋ยวนี้
+            Trigger Sync Now
           </button>
-          <div id="sync-progress" style="margin-top: 1rem; display: none;">
-            <p style="font-size: 0.8rem; color: var(--warning); font-weight: 500;">
-              <span class="spinner"></span> กำลังดึงข้อมูลจาก Airtable และอัปเดตลง Supabase...
+          <div id="sync-progress" style="margin-top: 0.75rem; display: none;">
+            <p style="font-size: 0.75rem; color: var(--warning); font-weight: 500;">
+              <span class="spinner"></span> Sync in progress...
             </p>
           </div>
         </div>
@@ -502,7 +444,6 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         document.getElementById('total-leads-val').textContent = data.totalLeads.toLocaleString();
         document.getElementById('total-value-val').textContent = '฿' + data.totalValueBaht.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
-        // Update column counts
         const stages = {
           'new': data.stageCounts.new || 0,
           'qualified': data.stageCounts.qualified || 0,
@@ -517,14 +458,12 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
         document.getElementById('count-paid').textContent = stages.paid;
         document.getElementById('count-completed').textContent = stages.completed;
 
-        // Clear previous cards
         document.getElementById('list-new').innerHTML = '';
         document.getElementById('list-qualified').innerHTML = '';
         document.getElementById('list-reserved').innerHTML = '';
         document.getElementById('list-paid').innerHTML = '';
         document.getElementById('list-completed').innerHTML = '';
 
-        // Populate recent leads into stages
         data.recentLeads.forEach(lead => {
           const card = document.createElement('div');
           card.className = 'lead-card';
@@ -533,10 +472,11 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
           
           card.innerHTML = \`
             <div class="lead-name">\${lead.customerName}</div>
-            <div style="font-size:0.75rem; color: var(--text-secondary);">ปลายทาง: \${lead.destination || 'ไม่ได้ระบุ'}</div>
             <div class="lead-meta">
-              <span style="font-weight:600; color:var(--accent-pink)">฿\${lead.estimatedBasketValue.toLocaleString()}</span>
-              <span>\${brandText}</span>
+              <div class="meta-item"><span>Brand:</span><span>\${brandText}</span></div>
+              <div class="meta-item"><span>Dest:</span><span>\${lead.destination || 'N/A'}</span></div>
+              <div class="meta-item"><span>Date:</span><span>\${lead.tripDate || 'N/A'}</span></div>
+              <div class="meta-item"><span>Est. Basket:</span><span style="font-weight:600; color:#38bdf8;">฿\${lead.estimatedBasketValue.toLocaleString()}</span></div>
             </div>
           \`;
 
@@ -565,34 +505,27 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
 
         if (data.status === 'running') {
           isSyncing = true;
-          statusElement.textContent = 'Syncing...';
-          statusElement.className = 'card-stat-value glow-cyan';
-          statusText.textContent = 'กำลังทำการดึงข้อมูลล่าสุด...';
+          statusElement.textContent = 'RUNNING';
+          statusText.textContent = 'Sync in progress...';
           pulse.className = 'pulse-dot running';
           syncBtn.disabled = true;
           progress.style.display = 'block';
         } else {
           if (isSyncing) {
             isSyncing = false;
-            // Reload stats when a sync run completes
             loadStats();
           }
           statusElement.textContent = data.status.toUpperCase();
           if (data.status === 'completed') {
-            statusElement.className = 'card-stat-value glow-cyan';
-            statusText.textContent = 'ดึงข้อมูลสำเร็จล่าสุดเรียบร้อย';
+            statusText.textContent = 'Last sync completed successfully';
             pulse.className = 'pulse-dot';
             pulse.style.backgroundColor = 'var(--success)';
-            pulse.style.boxShadow = '0 0 8px var(--success)';
           } else if (data.status === 'failed') {
-            statusElement.className = 'card-stat-value glow-cyan';
-            statusText.textContent = 'ดึงข้อมูลล้มเหลว: ' + (data.errorCode || 'UNKNOWN_ERROR');
+            statusText.textContent = 'Sync failed: ' + (data.errorCode || 'ERROR');
             pulse.className = 'pulse-dot';
             pulse.style.backgroundColor = 'var(--danger)';
-            pulse.style.boxShadow = '0 0 8px var(--danger)';
           } else {
-            statusElement.className = 'card-stat-value glow-cyan';
-            statusText.textContent = 'พร้อมสั่งรันซิงค์ข้อมูล';
+            statusText.textContent = 'Ready to trigger';
             pulse.className = 'pulse-dot idle';
           }
           syncBtn.disabled = false;
@@ -613,22 +546,19 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
           checkSyncStatus();
         } else {
           const errData = await response.json();
-          alert('ไม่สามารถเริ่มซิงค์ข้อมูลได้: ' + (errData.error || 'Unknown Error'));
+          alert('Sync trigger rejected: ' + (errData.error || 'Unknown Error'));
           syncBtn.disabled = false;
         }
       } catch (err) {
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+        alert('Server connection error');
         syncBtn.disabled = false;
       }
     }
 
-    // Initial load
     loadStats();
     checkSyncStatus();
 
-    // Auto-update summary every 10 seconds
     setInterval(loadStats, 10000);
-    // Poll sync status every 3 seconds
     setInterval(checkSyncStatus, 3000);
   </script>
 </body>
