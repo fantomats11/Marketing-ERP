@@ -1,0 +1,27 @@
+{
+  "name": "brandname-marketing-integrations",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --sourceMap --noUncheckedIndexedAccess --exactOptionalPropertyTypes --esModuleInterop --skipLibCheck --outDir dist --rootDir src src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "test": "npm run build && npm run test:unit && node --test test/*.test.mjs",
+    "test:unit": "vitest run --pool=threads --maxWorkers=1 --minWorkers=1 --no-file-parallelism --exclude test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "start:tiktok": "node src/server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "fastify": "^5.6.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

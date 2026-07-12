@@ -1,0 +1,185 @@
+{
+  "bases": [
+    {
+      "baseId": "appFixtureRent",
+      "brandId": "rent-a-coat",
+      "transactionsTable": "Transactions",
+      "transactionDetailsTable": "Transaction Detail",
+      "transactionDetailsSourceUpdatedAt": "detail_modified",
+      "transactionDetailTransactionLink": "transaction_link",
+      "fieldMap": {
+        "documentNumbers": ["rental_doc", "sale_doc"],
+        "documentDate": "document_date",
+        "branchId": "branch_code",
+        "amounts": {
+          "grossAmount": "gross_baht",
+          "discountAmount": "discount_baht",
+          "netBeforeVat": "before_vat_baht",
+          "vatAmount": "vat_baht",
+          "documentTotal": "total_baht",
+          "cashCollected": "cash_baht",
+          "depositAmount": "deposit_baht",
+          "refundAmount": "refund_baht"
+        },
+        "sourceUpdatedAt": "source_modified",
+        "destination": "destination_text",
+        "paidAt": "paid_at"
+      },
+      "branches": {
+        "R9": "rac-rama9",
+        "VIB": "rac-vibhavadi"
+      }
+    },
+    {
+      "baseId": "appFixtureMall",
+      "brandId": "go-mall",
+      "transactionsTable": "Transactions",
+      "transactionDetailsTable": "Transaction Detail",
+      "transactionDetailsSourceUpdatedAt": "detail_changed",
+      "transactionDetailTransactionLink": "transaction_link",
+      "fieldMap": {
+        "documentNumbers": ["document_no"],
+        "documentDate": "issued_at",
+        "branchId": "store_code",
+        "amounts": {
+          "grossAmount": "subtotal",
+          "discountAmount": "promo",
+          "netBeforeVat": "tax_base",
+          "vatAmount": "tax",
+          "documentTotal": "grand_total",
+          "cashCollected": "received",
+          "depositAmount": "held_deposit",
+          "refundAmount": "returned"
+        },
+        "sourceUpdatedAt": "last_changed",
+        "destination": "trip_destination"
+      },
+      "branches": {
+        "GM-R9": "gomall-rama9",
+        "PFS": "phetkasem-future"
+      }
+    }
+  ],
+  "pages": [
+    {
+      "baseId": "appFixtureRent",
+      "table": "Transactions",
+      "records": [
+        {
+          "id": "rec-rent-sale",
+          "fields": {
+            "rental_doc": "",
+            "sale_doc": "CA-1001",
+            "document_date": "2026-07-10T02:00:00+07:00",
+            "branch_code": "R9",
+            "gross_baht": "1234.50",
+            "discount_baht": "34.50",
+            "before_vat_baht": "1200",
+            "vat_baht": "84.00",
+            "total_baht": "1284.00",
+            "cash_baht": "1284",
+            "deposit_baht": "200.00",
+            "refund_baht": "0",
+            "source_modified": "2026-07-10T05:00:00Z",
+            "destination_text": "Hokkaido",
+            "paid_at": "2026-07-10T03:00:00+07:00",
+            "arbitrary_private_customer_data": "arbitrary-private-pii-value"
+          }
+        }
+      ],
+      "nextOffset": "rent-page-2"
+    },
+    {
+      "baseId": "appFixtureRent",
+      "table": "Transactions",
+      "offset": "rent-page-2",
+      "records": [
+        {
+          "id": "rec-unknown-branch",
+          "fields": {
+            "rental_doc": "RE-2001",
+            "sale_doc": "",
+            "document_date": "2026-07-10T03:00:00Z",
+            "branch_code": "UNKNOWN",
+            "gross_baht": "500",
+            "discount_baht": "0",
+            "before_vat_baht": "500",
+            "vat_baht": "35",
+            "total_baht": "535",
+            "cash_baht": "535",
+            "deposit_baht": "0",
+            "refund_baht": "0",
+            "source_modified": "2026-07-10T06:00:00Z",
+            "destination_text": "Rama 9"
+          }
+        },
+        {
+          "id": "rec-invalid-amount",
+          "fields": {
+            "rental_doc": "RE-2002",
+            "sale_doc": "",
+            "document_date": "2026-07-10T04:00:00Z",
+            "branch_code": "VIB",
+            "gross_baht": "100.001",
+            "discount_baht": "0",
+            "before_vat_baht": "100",
+            "vat_baht": "7",
+            "total_baht": "107",
+            "cash_baht": "107",
+            "deposit_baht": "0",
+            "refund_baht": "0",
+            "source_modified": "2026-07-10T07:00:00Z",
+            "destination_text": "Osaka"
+          }
+        }
+      ]
+    },
+    {
+      "baseId": "appFixtureRent",
+      "table": "Transaction Detail",
+      "records": [
+        { "id": "rec-rent-detail", "fields": { "transaction_link": ["rec-rent-sale"], "detail_modified": "2026-07-10T05:30:00Z" } }
+      ]
+    },
+    {
+      "baseId": "appFixtureMall",
+      "table": "Transactions",
+      "records": [
+        {
+          "id": "rec-mall-rental",
+          "fields": {
+            "document_no": "RE-3001",
+            "issued_at": "2026-07-11T01:00:00Z",
+            "store_code": "GM-R9",
+            "subtotal": 800.25,
+            "promo": 50,
+            "tax_base": 750.25,
+            "tax": 52.52,
+            "grand_total": 802.77,
+            "received": 802.77,
+            "held_deposit": 100,
+            "returned": 0,
+            "last_changed": "2026-07-11T02:00:00Z",
+            "trip_destination": "Seoul"
+          }
+        }
+      ]
+    },
+    {
+      "baseId": "appFixtureMall",
+      "table": "Transaction Detail",
+      "records": [
+        { "id": "rec-mall-detail-1", "fields": { "transaction_link": ["rec-mall-rental"], "detail_changed": "2026-07-11T02:30:00Z" } }
+      ],
+      "nextOffset": "mall-detail-page-2"
+    },
+    {
+      "baseId": "appFixtureMall",
+      "table": "Transaction Detail",
+      "offset": "mall-detail-page-2",
+      "records": [
+        { "id": "rec-mall-detail-2", "fields": { "transaction_link": ["rec-mall-rental"], "detail_changed": "2026-07-11T03:00:00Z" } }
+      ]
+    }
+  ]
+}
