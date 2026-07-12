@@ -126,6 +126,14 @@ The Vibhavadi operation is planned to move to a new Phetkasem location around Au
   - Extract and populate CRM attributes: travel destination, trip date, rental/purchase intent, pain points, and objections into `conversations` and `conversation_extractions` tables.
 - Transactional Triggers: Allow agents to send size guides, booking deposit links, or invoice drafts directly from the chat interface.
 
+### 4.12 CRM and Customer Lifecycle Management
+
+- Unified Customer CRM Profiles: Aggregate customer data from Airtable bases, LINE OA profile metadata, and social messenger handlers into a single Customer Master Record.
+- Sizing Master Tracking: Store and track historical customer size profiles, including boots height (`pa_boots-height`), bag capacity (`pa_bag-capacity`), pants length (`pa_pants-length`), shirt length (`pa_shirt-length`), colors (`pa_color`), and general size (`pa_size`) to enable frictionless future orders.
+- Traveler Segments & Tagging: Segment customers by travel destination, frequency of rental, estimated basket value, and active pain points (e.g., "cold-sensitive", "family renter", "first-time traveler").
+- Lead Scoring & Pipelining: Link customer profiles to the sales pipeline (`leads` and `pipeline_items` tables), tracking stages from Lead $\rightarrow$ Qualified $\rightarrow$ Reserved $\rightarrow$ Paid $\rightarrow$ Completed $\rightarrow$ Follow-up.
+- Automated Retention Outreach: System triggers manual task creation or pre-approved LINE message drafts for follow-up based on trip return dates (e.g., wash feedback, review requests) and upcoming season reminders (e.g., travel anniversary reminders).
+
 ## 5. Canonical Revenue Rules
 
 Revenue categories are `rental`, `sale`, `wash`, `asset_sale`, `b2b`, `barter`, `damage_fee`, and `late_fee`. `deposit` and `refund` are settlement types, not positive revenue categories.

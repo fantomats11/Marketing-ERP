@@ -145,6 +145,15 @@ graph TD
     *   *AI Extract-and-Tag:* Automatically extracts traveler travel destinations, trip dates, rental/purchase intent, and specific customer pain points/objections directly from messages, inserting them into `conversations` and `conversation_extractions` tables.
 *   **Transactional Quick-Actions:** Direct button integration to send size charts, checkout invoice drafts, or payment links directly into the active chat window.
 
+### 4.11 CRM & Customer Lifecycle Management
+*   **Unified CRM Customer Profiles:** Aggregates and merges customer contact info, profile metadata, and chat IDs (LINE, Messenger, Instagram, TikTok) into a single customer detail record in the ERP.
+*   **Sizing Profile Repository:** Stores historical sizing data per customer (e.g. boots height `pa_boots-height`, bag capacity `pa_bag-capacity`, size `pa_size`, pants length `pa_pants-length`, shirt length `pa_shirt-length`) to fast-track subsequent rental bookings.
+*   **Customer Segmentation Engine:** Dynamic tagging based on travel habits (e.g. "Frequent Winter Traveler", "Family Trip Planner"), value metrics (Recency, Frequency, Monetary value from Airtable), and objections (e.g. "cold-sensitive").
+*   **Sales Pipeline Integration (Leads & Pipelining):** Binds profiles directly to `leads` and `pipeline_items` tables. Displays a visual Kanban pipeline of marketing leads moving from *New Lead $\rightarrow$ Reviewed $\rightarrow$ Qualified $\rightarrow$ Quoted $\rightarrow$ Reserved $\rightarrow$ Paid $\rightarrow$ Completed $\rightarrow$ Follow-up*.
+*   **Automated Retention & Re-engagement Triggers:**
+    *   *Post-trip follow-ups:* Automatically queue LINE/email outreach templates (e.g., wash feedback, product reviews) based on Airtable return dates.
+    *   *Seasonal reminders:* Triggers anniversary/upcoming season notifications to re-engage active travelers (e.g., travel anniversary reminders).
+
 ---
 
 ## 5. Identified Gaps & Missing Items (Production-Ready Action Items)
